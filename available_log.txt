@@ -1,0 +1,131 @@
++-------------------------------------------------------------------------------+
+|Name             |Group Name           |Description                            |
++-------------------------------------------------------------------------------+
+|COORD-X          |COORDINATES          |x-component of the coordinate vector   |
+|COORD-Y          |COORDINATES          |y-component of the coordinate vector   |
+|PRESSURE         |SOLUTION             |Pressure                               |
+|VELOCITY-X       |SOLUTION             |x-component of the velocity vector     |
+|VELOCITY-Y       |SOLUTION             |y-component of the velocity vector     |
+|GRID_VELOCITY-X  |GRID_VELOCITY        |x-component of the grid velocity vector|
+|GRID_VELOCITY-Y  |GRID_VELOCITY        |y-component of the grid velocity vector|
+|PRESSURE_COEFF   |PRIMITIVE            |Pressure coefficient                   |
+|DENSITY          |PRIMITIVE            |Density                                |
+|LAMINAR_VISCOSITY|PRIMITIVE            |Laminar viscosity                      |
+|SKIN_FRICTION-X  |PRIMITIVE            |x-component of the skin friction vector|
+|SKIN_FRICTION-Y  |PRIMITIVE            |y-component of the skin friction vector|
+|HEAT_FLUX        |PRIMITIVE            |Heat-flux                              |
+|Y_PLUS           |PRIMITIVE            |Non-dim. wall distance (Y-Plus)        |
+|RES_PRESSURE     |RESIDUAL             |Residual of the pressure               |
+|RES_VELOCITY-X   |RESIDUAL             |Residual of the x-velocity component   |
+|RES_VELOCITY-Y   |RESIDUAL             |Residual of the y-velocity component   |
+|VORTICITY        |VORTEX_IDENTIFICATION|Value of the vorticity                 |
+|Q_CRITERION      |VORTEX_IDENTIFICATION|Value of the Q-Criterion               |
+|ORTHOGONALITY    |MESH_QUALITY         |Orthogonality Angle (deg.)             |
+|ASPECT_RATIO     |MESH_QUALITY         |CV Face Area Aspect Ratio              |
+|VOLUME_RATIO     |MESH_QUALITY         |CV Sub-Volume Ratio                    |
+|RANK             |MPI                  |Rank of the MPI-partition              |
++-------------------------------------------------------------------------------+
+Available screen/history output fields for the current configuration in Zone 0 (Incomp. Fluid):
++---------------------------------------------------------------------------------------------------------------------------------+
+|Name                            |Group Name         |Type |Description                                                           |
++---------------------------------------------------------------------------------------------------------------------------------+
+|TIME_ITER                       |ITER               |D    |Time iteration index                                                  |
+|OUTER_ITER                      |ITER               |D    |Outer iteration index                                                 |
+|INNER_ITER                      |ITER               |D    |Inner iteration index                                                 |
+|CUR_TIME                        |TIME_DOMAIN        |D    |Current physical time (s)                                             |
+|TIME_STEP                       |TIME_DOMAIN        |D    |Current time step (s)                                                 |
+|WALL_TIME                       |WALL_TIME          |D    |Average wall-clock time since the start of inner iterations.          |
+|NONPHYSICAL_POINTS              |NONPHYSICAL_POINTS |D    |The number of non-physical points in the solution                     |
+|RMS_PRESSURE                    |RMS_RES            |R    |Root-mean square residual of the pressure.                            |
+|RMS_VELOCITY-X                  |RMS_RES            |R    |Root-mean square residual of the velocity x-component.                |
+|RMS_VELOCITY-Y                  |RMS_RES            |R    |Root-mean square residual of the velocity y-component.                |
+|MAX_PRESSURE                    |MAX_RES            |R    |Maximum residual of the pressure.                                     |
+|MAX_VELOCITY-X                  |MAX_RES            |R    |Maximum residual of the velocity x-component.                         |
+|MAX_VELOCITY-Y                  |MAX_RES            |R    |Maximum residual of the velocity y-component.                         |
+|BGS_PRESSURE                    |BGS_RES            |R    |BGS residual of the pressure.                                         |
+|BGS_VELOCITY-X                  |BGS_RES            |R    |BGS residual of the velocity x-component.                             |
+|BGS_VELOCITY-Y                  |BGS_RES            |R    |BGS residual of the velocity y-component.                             |
+|AOA                             |AOA                |D    |Angle of attack                                                       |
+|LINSOL_ITER                     |LINSOL             |D    |Number of iterations of the linear solver.                            |
+|LINSOL_RESIDUAL                 |LINSOL             |D    |Residual of the linear solver.                                        |
+|MIN_DELTA_TIME                  |CFL_NUMBER         |D    |Current minimum local time step                                       |
+|MAX_DELTA_TIME                  |CFL_NUMBER         |D    |Current maximum local time step                                       |
+|MIN_CFL                         |CFL_NUMBER         |D    |Current minimum of the local CFL numbers                              |
+|MAX_CFL                         |CFL_NUMBER         |D    |Current maximum of the local CFL numbers                              |
+|AVG_CFL                         |CFL_NUMBER         |D    |Current average of the local CFL numbers                              |
+|DEFORM_MIN_VOLUME               |DEFORM             |D    |Minimum volume in the mesh                                            |
+|DEFORM_MAX_VOLUME               |DEFORM             |D    |Maximum volume in the mesh                                            |
+|DEFORM_ITER                     |DEFORM             |D    |Linear solver iterations for the mesh deformation                     |
+|DEFORM_RESIDUAL                 |DEFORM             |D    |Residual of the linear solver for the mesh deformation                |
+|SURFACE_MASSFLOW                |FLOW_COEFF         |C    |Total average mass flow on all markers set in MARKER_ANALYZE          |
+|SURFACE_MACH                    |FLOW_COEFF         |C    |Total average mach number on all markers set in MARKER_ANALYZE        |
+|SURFACE_STATIC_TEMPERATURE      |FLOW_COEFF         |C    |Total average temperature on all markers set in MARKER_ANALYZE        |
+|SURFACE_STATIC_PRESSURE         |FLOW_COEFF         |C    |Total average pressure on all markers set in MARKER_ANALYZE           |
+|AVG_DENSITY                     |FLOW_COEFF         |C    |Total average density on all markers set in MARKER_ANALYZE            |
+|AVG_ENTHALPY                    |FLOW_COEFF         |C    |Total average enthalpy on all markers set in MARKER_ANALYZE           |
+|AVG_NORMALVEL                   |FLOW_COEFF         |C    |Total average normal velocity on all markers set in MARKER_ANALYZE    |
+|SURFACE_UNIFORMITY              |FLOW_COEFF         |C    |Total flow uniformity on all markers set in MARKER_ANALYZE            |
+|SURFACE_SECONDARY               |FLOW_COEFF         |C    |Total secondary strength on all markers set in MARKER_ANALYZE         |
+|SURFACE_MOM_DISTORTION          |FLOW_COEFF         |C    |Total momentum distortion on all markers set in MARKER_ANALYZE        |
+|SURFACE_SECOND_OVER_UNIFORM     |FLOW_COEFF         |C    |Total secondary over uniformity on all markers set in MARKER_ANALYZE  |
+|SURFACE_TOTAL_TEMPERATURE       |FLOW_COEFF         |C    |Total average total temperature all markers set in MARKER_ANALYZE     |
+|SURFACE_TOTAL_PRESSURE          |FLOW_COEFF         |C    |Total average total pressure on all markers set in MARKER_ANALYZE     |
+|DRAG                            |AERO_COEFF         |C    |Total drag coefficient on all surfaces set with MARKER_MONITORING     |
+|LIFT                            |AERO_COEFF         |C    |Total lift coefficient on all surfaces set with MARKER_MONITORING     |
+|SIDEFORCE                       |AERO_COEFF         |C    |Total sideforce coefficient on all surfaces set with MARKER_MONITORING|
+|MOMENT_X                        |AERO_COEFF         |C    |Total momentum x-component on all surfaces set with MARKER_MONITORING |
+|MOMENT_Y                        |AERO_COEFF         |C    |Total momentum y-component on all surfaces set with MARKER_MONITORING |
+|MOMENT_Z                        |AERO_COEFF         |C    |Total momentum z-component on all surfaces set with MARKER_MONITORING |
+|FORCE_X                         |AERO_COEFF         |C    |Total force x-component on all surfaces set with MARKER_MONITORING    |
+|FORCE_Y                         |AERO_COEFF         |C    |Total force y-component on all surfaces set with MARKER_MONITORING    |
+|FORCE_Z                         |AERO_COEFF         |C    |Total force z-component on all surfaces set with MARKER_MONITORING    |
+|EFFICIENCY                      |AERO_COEFF         |C    |Total lift-to-drag ratio on all surfaces set with MARKER_MONITORING   |
+|AOA                             |AOA                |D    |Angle of attack                                                       |
+|COMBO                           |COMBO              |C    |Combined obj. function value.                                         |
+|FIGURE_OF_MERIT                 |ROTATING_FRAME     |C    |Thrust over torque                                                    |
+|THRUST                          |ROTATING_FRAME     |C    |Thrust coefficient                                                    |
+|TORQUE                          |ROTATING_FRAME     |C    |Torque coefficient                                                    |
+|DRAG_ON_SURFACE                 |AERO_COEFF_SURF    |C    |                                                                      |
+|LIFT_ON_SURFACE                 |AERO_COEFF_SURF    |C    |                                                                      |
+|SIDEFORCE_ON_SURFACE            |AERO_COEFF_SURF    |C    |                                                                      |
+|MOMENT-X_ON_SURFACE             |AERO_COEFF_SURF    |C    |                                                                      |
+|MOMENT-Y_ON_SURFACE             |AERO_COEFF_SURF    |C    |                                                                      |
+|MOMENT-Z_ON_SURFACE             |AERO_COEFF_SURF    |C    |                                                                      |
+|FORCE-X_ON_SURFACE              |AERO_COEFF_SURF    |C    |                                                                      |
+|FORCE-Y_ON_SURFACE              |AERO_COEFF_SURF    |C    |                                                                      |
+|FORCE-Z_ON_SURFACE              |AERO_COEFF_SURF    |C    |                                                                      |
+|EFFICIENCY_ON_SURFACE           |AERO_COEFF_SURF    |C    |                                                                      |
++---------------------------------------------------------------------------------------------------------------------------------+
+Type legend: Default (D), Residual (R), Coefficient (C)
+Generated screen/history fields (only first field of every group is shown):
++---------------------------------------------------------------------------------------------------------------------------------+
+|Name                            |Group Name         |Type |Description                                                           |
++---------------------------------------------------------------------------------------------------------------------------------+
+|REL_RMS_PRESSURE                |REL_RMS_RES        |AR   |Relative residual.                                                    |
+|REL_MAX_PRESSURE                |REL_MAX_RES        |AR   |Relative residual.                                                    |
+|REL_BGS_PRESSURE                |REL_BGS_RES        |AR   |Relative residual.                                                    |
+|AVG_BGS_RES                     |AVG_BGS_RES        |AR   |Average residual over all solution variables.                         |
+|AVG_MAX_RES                     |AVG_MAX_RES        |AR   |Average residual over all solution variables.                         |
+|AVG_RMS_RES                     |AVG_RMS_RES        |AR   |Average residual over all solution variables.                         |
+|TAVG_SURFACE_MASSFLOW           |TAVG_FLOW_COEFF    |AC   |Time averaged values.                                                 |
+|TAVG_DRAG                       |TAVG_AERO_COEFF    |AC   |Time averaged values.                                                 |
+|TAVG_COMBO                      |TAVG_COMBO         |AC   |Time averaged values.                                                 |
+|TAVG_FIGURE_OF_MERIT            |TAVG_ROTATING_FRAME|AC   |Time averaged values.                                                 |
++---------------------------------------------------------------------------------------------------------------------------------+
+
+------------------------- Solver Postprocessing -------------------------
+Deleted CNumerics container.
+Deleted CIntegration container.
+Deleted CSolver container.
+Deleted CIteration container.
+Deleted CInterface container.
+Deleted CGeometry container.
+Deleted CFreeFormDefBox class.
+Deleted CSurfaceMovement class.
+Deleted CVolumetricMovement class.
+Deleted CConfig container.
+Deleted nInst container.
+Deleted COutput class.
+-------------------------------------------------------------------------
+
+------------------------- Exit Success (SU2_CFD) ------------------------
