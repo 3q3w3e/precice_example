@@ -1,0 +1,72 @@
+# coding=utf-8
+"""One-window Code_Aster solve helpers for the solid participant."""
+
+import numpy as np
+from code_aster import CA
+from code_aster.Cata.Syntax import _F
+from code_aster.Commands import AFFE_CHAR_MECA, DEFI_LIST_REEL, DYNA_NON_LINE
+
+from solid_model import SolidContext
+
+
+def build_force_load(context: SolidContext, forces):
+    """preCICE interface forces, shaped (n_iface, 2), as a Code_Aster load."""
+    config = context.config
+    f = CA.SimpleFieldOnNodesReal(context.mesh, "DEPL_R", config.comp, True)
+    f.setValues(0.0)
+    nodes = np.repeat(context.iface_nodes, config.dim)
+    comps = np.tile(np.asarray(config.comp, dtype=object), context.n_iface)
+    f.setValues(
+        [int(x) for x in nodes],
+        [str(x) for x in comps],
+        [float(x) for x in np.asarray(forces, np.float64).ravel()],
+    )
+    return AFFE_CHAR_MECA(MODELE=context.model, VECT_ASSE=f.toFieldOnNodes())
+
+
+def solve_window(context: SolidContext, forces, prev_result, t0, t1, init_vite=None):
+    """Solve one coupling window from the checkpoint state ``prev_result``."""
+    load = build_force_load(context, forces)
+    tlist = DEFI_LIST_REEL(VALE=(t0, t1))
+    kw = dict(
+        MODELE=context.model,
+        CHAM_MATER=context.fmat,
+        EXCIT=(_F(CHARGE=context.fix), _F(CHARGE=load)),
+        COMPORTEMENT=_F(RELATION="ELAS", DEFORMATION="GREEN_LAGRANGE"),
+        INCREMENT=_F(LIST_INST=tlist),
+        SCHEMA_TEMPS=_F(SCHEMA="HHT", FORMULATION="DEPLACEMENT", ALPHA=-0.1),
+        NEWTON=_F(MATRICE="TANGENTE", REAC_ITER=1),
+        SOLVEUR=_F(METHODE="MUMPS"),
+        CONVERGENCE=_F(
+            ITER_GLOB_MAXI=80,
+            RESI_GLOB_RELA=1.0e-6,
+            RESI_GLOB_MAXI=1.0e-9,
+        ),
+    )
+    if prev_result is not None:
+        kw["ETAT_INIT"] = _F(EVOL_NOLI=prev_result)
+    elif init_vite is not None:
+        kw["ETAT_INIT"] = _F(VITE=init_vite)
+    return DYNA_NON_LINE(**kw)
+
+
+def interface_displacements(context: SolidContext, result, t):
+    """Extract interface node displacements from ``result`` at time ``t``."""
+    field = None
+    for para, val in (("INST", float(t)), ("NUME_ORDRE", 2), ("NUME_ORDRE", 1)):
+        try:
+            field = result.getField("DEPL", value=val, para=para).toSimpleFieldOnNodes()
+            break
+        except Exception:
+            continue
+    if field is None:
+        raise RuntimeError("변위장 추출 실패")
+
+    vals, _ = field.getValues(copy=True)
+    components = list(field.getComponents())
+    return np.column_stack(
+        [
+            vals[context.iface_nodes, components.index("DX")],
+            vals[context.iface_nodes, components.index("DY")],
+        ]
+    ).astype(np.float64)

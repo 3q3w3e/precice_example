@@ -14,12 +14,15 @@
 # ----------------------------------------------------------------------
 
 import sys
+import os
 from optparse import OptionParser	# use a parser for configuration
 import pysu2			            # imports the SU2 wrapped module
 from math import *
 import numpy
 import precice
 from time import sleep
+import fluid_refcoords as frc       # restart: reference interface-coord persist/reload
+import fluid_restart as frs         # restart: keep last-2 consecutive restart files
 # -------------------------------------------------------------------
 #  Main
 # -------------------------------------------------------------------
@@ -42,6 +45,9 @@ def main():
   
     (options, args) = parser.parse_args()
     options.nZone = int(1)
+
+    def _env_flag(name, default="0"):
+        return os.environ.get(name, default).strip().lower() in ("1", "true", "yes", "on")
 
     # Import mpi4py for parallel run
     if options.with_MPI == True:
@@ -96,6 +102,7 @@ def main():
     nVertex_MovingMarker_HALO = 0    #number of halo vertices
     nVertex_MovingMarker_PHYS = 0    #number of physical vertices
     iVertices_MovingMarker_PHYS = [] # indices of vertices this rank is working on
+    global_ids_MovingMarker_PHYS = [] # SU2 global node ids for those vertices
     # Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
     
     if MovingMarkerID != None:
@@ -107,6 +114,15 @@ def main():
         for iVertex in range(nVertex_MovingMarker):
             if not SU2Driver.IsAHaloNode(MovingMarkerID, iVertex):
                 iVertices_MovingMarker_PHYS.append(int(iVertex))
+                try:
+                    gid = SU2Driver.GetVertexGlobalIndex(MovingMarkerID, iVertex)
+                except AttributeError as exc:
+                    raise RuntimeError(
+                        "This SU2 Python wrapper does not expose "
+                        "GetVertexGlobalIndex(marker, vertex), which is required "
+                        "for nproc-changing restart."
+                    ) from exc
+                global_ids_MovingMarker_PHYS.append(int(gid))
 
     # --- MPI-parallel safe marker check -----------------------------------------
     # The flow domain is partitioned over ALL ranks, but MARKER_DEFORM_MESH is only
@@ -154,6 +170,33 @@ def main():
         for iDim in range(options.nDim):
             coords[i, iDim] = coord_passive[iDim]
 
+    # --- RESTART: GetInitialMeshCoord returns the *current* grid coord, which on
+    #     restart is the restart-DEFORMED interface.  Register preCICE at the
+    #     REFERENCE interface instead.  The reference map is keyed by SU2 global
+    #     node id, so a restart can be attempted with a different FLUID_NPROC.
+    FLUID_RESTART = os.environ.get("FLUID_RESTART", "0") == "1"
+    _FLUID_DIR    = os.path.dirname(os.path.abspath(__file__))
+    # shared restart dir at the case root (same as solid + prepare_restart.py)
+    FLUID_REFDIR  = os.environ.get("FLUID_RESTART_DIR",
+                                   os.path.join(os.path.dirname(_FLUID_DIR), "restart"))
+    # BDF2-direct restart needs two consecutive restart files.  Keeping one
+    # extra file protects against Ctrl-C when the fluid output has advanced one
+    # window ahead of the solid manifest.
+    FLUID_KEEP_RESTART = os.environ.get("FLUID_KEEP_RESTART", "1") == "1"
+    FLUID_RESTART_KEEP = int(os.environ.get("FLUID_RESTART_KEEP", "3"))
+    coords = frc.reference_interface_coords(
+        coords,
+        global_ids_MovingMarker_PHYS,
+        FLUID_REFDIR,
+        rank,
+        size,
+        FLUID_RESTART,
+        comm if options.with_MPI else None,
+    )
+    if rank == 0:
+        tag = "reloaded global-id reference" if FLUID_RESTART else "persisted global-id reference"
+        print(f"[Fluid] interface coords: {tag} ({FLUID_REFDIR})", flush=True)
+
     # Set mesh vertices in preCICE:
     try:
         vertex_ids = participant.set_mesh_vertices(mesh_name, coords)
@@ -192,7 +235,7 @@ def main():
                 SU2Driver.GetFlowLoad(MovingMarkerID, iVertex), options.nDim
             )
 
-        participant.write_block_vector_data(mesh_name, precice_write, vertex_ids, forces)
+        participant.write_data(mesh_name, precice_write, vertex_ids, forces)  # preCICE 3.x API
 
     # Initialize preCICE
     participant.initialize()
@@ -201,6 +244,54 @@ def main():
     # This should only be needed on some systems and use cases
     #
     sleep(3)
+
+    # Optional inlet ramp:
+    # Keep the inlet profile shape from inlet.dat, but scale its velocity
+    # magnitude with a smooth absolute-time factor before each SU2 step.
+    FLUID_INLET_RAMP = _env_flag("FLUID_INLET_RAMP")
+    FLUID_INLET_RAMP_MARKER = os.environ.get("FLUID_INLET_RAMP_MARKER", "inlet")
+    FLUID_INLET_RAMP_TIME = float(os.environ.get("FLUID_INLET_RAMP_TIME", "2.0"))
+    FLUID_INLET_RAMP_LOG = _env_flag("FLUID_INLET_RAMP_LOG")
+
+    InletMarkerID = (
+        allMarkerIDs[FLUID_INLET_RAMP_MARKER]
+        if FLUID_INLET_RAMP_MARKER in allMarkerIDs.keys()
+        else None
+    )
+    nVertex_Inlet = SU2Driver.GetNumberVertices(InletMarkerID) if InletMarkerID is not None else 0
+    nVertex_Inlet_GLOBAL = nVertex_Inlet
+    if options.with_MPI == True:
+        nVertex_Inlet_GLOBAL = comm.allreduce(nVertex_Inlet, op=MPI.SUM)
+
+    if FLUID_INLET_RAMP and nVertex_Inlet_GLOBAL == 0:
+        raise RuntimeError(
+            f"FLUID_INLET_RAMP=1, but inlet marker '{FLUID_INLET_RAMP_MARKER}' "
+            "was not found on any rank."
+        )
+
+    inlet_base_vel = []
+    if FLUID_INLET_RAMP and nVertex_Inlet > 0:
+        inlet_base_vel = [
+            SU2Driver.GetInletVelocityMag(InletMarkerID, i)
+            for i in range(nVertex_Inlet)
+        ]
+
+    def inlet_ramp_factor(t):
+        if not FLUID_INLET_RAMP or FLUID_INLET_RAMP_TIME <= 0.0:
+            return 1.0
+        tau = min(max(t / FLUID_INLET_RAMP_TIME, 0.0), 1.0)
+        return 0.5 * (1.0 - cos(pi * tau))
+
+    if rank == 0:
+        if FLUID_INLET_RAMP:
+            print(
+                f"[Fluid] inlet ramp: enabled marker={FLUID_INLET_RAMP_MARKER} "
+                f"vertices={nVertex_Inlet_GLOBAL} ramp_time={FLUID_INLET_RAMP_TIME:.6e}s "
+                f"initial_time={time:.6e}s initial_factor={inlet_ramp_factor(time):.6e}",
+                flush=True,
+            )
+        else:
+            print("[Fluid] inlet ramp: disabled", flush=True)
 
     # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
     if rank == 0:
@@ -255,6 +346,17 @@ def main():
         deltaT = SU2Driver.GetUnsteady_TimeStep()
         deltaT = min(precice_deltaT, deltaT)
         SU2Driver.SetUnsteady_TimeStep(deltaT)
+
+        if FLUID_INLET_RAMP and nVertex_Inlet > 0:
+            f_ramp = inlet_ramp_factor(time)
+            for i in range(nVertex_Inlet):
+                SU2Driver.SetInletVelocityMag(InletMarkerID, i, inlet_base_vel[i] * f_ramp)
+            if FLUID_INLET_RAMP_LOG and rank == 0:
+                print(
+                    f"[Fluid] inlet_ramp iter={TimeIter:04d} "
+                    f"t={time:.6e} factor={f_ramp:.6e}",
+                    flush=True,
+                )
         
         # Time iteration preprocessing (mesh is deformed here)
         SU2Driver.Preprocess(TimeIter)
@@ -293,6 +395,12 @@ def main():
 
         if (participant.is_time_window_complete()):
             SU2Driver.Output(TimeIter)
+            # Run-extension: keep the latest consecutive restart files so a
+            # BDF2 restart always has restart_flow_<k-1> and <k-2> available.
+            # t_R is NOT computed here — the solid manifest is the single source
+            # of truth and prepare_restart.py derives the fluid RESTART_ITER from it.
+            if rank == 0 and FLUID_KEEP_RESTART:
+                frs.prune_restart_files(_FLUID_DIR, keep=FLUID_RESTART_KEEP)
             if (stopCalc == True):
                 break
             # Update control parameters

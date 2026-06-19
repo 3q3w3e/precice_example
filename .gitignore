@@ -1,3 +1,41 @@
-*.su2
-*.med
-*.dat
+# Python
+__pycache__/
+*.py[cod]
+
+# Generated run configuration for the restart-capable Turek-Hron 2 case.
+# The tracked templates are:
+#   20260611/turek_hron2/precice-config.base.xml
+#   20260611/turek_hron2/fluid/config_fluid.cfg
+20260611/turek_hron2/precice-config.xml
+20260611/turek_hron2/fluid/config_fluid_run.cfg
+20260611/turek_hron2/fluid/config_fluid_restart.cfg
+20260611/turek_hron2/fluid/inlet.dat
+
+# preCICE logs/profiling/runtime exchange
+precice-*.log
+precice-profiling/
+precice-run/
+
+# SU2 runtime output
+history*.csv
+forces_breakdown*.dat
+flow*.vtu
+surface_flow*.vtu
+restart_flow*.dat
+restart/
+
+# Code_Aster runtime output
+glob.*
+vola.*
+fort.*
+pick.code_aster.*
+*.mess
+run_*.log
+*log.txt
+solid_*.med
+run_solid_result.med
+
+# Solid-only free-decay diagnostic output
+free_decay.csv
+free_decay.png
+free_decay_*.log

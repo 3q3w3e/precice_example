@@ -12,14 +12,14 @@ max-time.  This script is the one place that:
         max-time = TOTAL - t_R         (TOTAL read from the base config)
     and, on restart, a more conservative IQN initial-relaxation (history empty),
   * generates the fluid run-config (config_fluid_restart.cfg) with
-        RESTART_SOL=YES, RESTART_ITER = round(t_R/dt)+1, OUTPUT_WRT_FREQ RESTART=1,
-  * creates the inlet_<iter>.dat symlinks SU2 looks for on restart,
+        RESTART_SOL=YES, RESTART_ITER = round(t_R/dt), OUTPUT_WRT_FREQ=(1,1,1),
+  * can optionally create inlet_<iter>.dat symlinks for legacy workflows,
   * verifies the two consecutive restart_flow_<k-1>,<k-2>.dat exist (BDF2-direct),
   * prints the env to launch each run.sh.
 
 Fresh (first) run: `--fresh` just generates precice-config.xml (max-time=TOTAL)
-and config_fluid_run.cfg (RESTART_SOL=NO, RESTART output every window) so the
-first run already produces restartable output.
+and config_fluid_run.cfg (RESTART_SOL=NO, VTU + RESTART output every window) so
+the first run already produces restartable and ParaView-friendly output.
 
 Fluid RESTART_ITER and inlet indices are DERIVED from t_R here, never stored
 independently, so fluid / solid / preCICE all reconcile on the one t_R.
@@ -86,8 +86,8 @@ def _set_cfg_key(text, key, value):
 
 def gen_fluid_config(restart, restart_iter=None):
     text = FLUID_CFG_BASE.read_text()
-    # always: write a restart file every window so last-2 are available
-    text = _set_cfg_key(text, "OUTPUT_WRT_FREQ", "(40, 100, 1)")
+    # Write volume/surface VTU and restart files every accepted time window.
+    text = _set_cfg_key(text, "OUTPUT_WRT_FREQ", "(1, 1, 1)")
     if restart:
         text = _set_cfg_key(text, "RESTART_SOL", "YES")
         text = _set_cfg_key(text, "SOLUTION_FILENAME", "restart_flow")
@@ -101,7 +101,7 @@ def gen_fluid_config(restart, restart_iter=None):
     os.replace(str(tmp), str(out))
     print(f"[prepare] wrote {out.name}"
           + (f": RESTART_SOL=YES RESTART_ITER={restart_iter}" if restart else ": RESTART_SOL=NO")
-          + " OUTPUT_WRT_FREQ RESTART=1")
+          + " OUTPUT_WRT_FREQ=(1,1,1)")
     return out
 
 
@@ -148,6 +148,8 @@ def main():
                     help="override the run end time (s); handy for short regression tests")
     ap.add_argument("--init-relax", type=float, default=0.05,
                     help="conservative IQN initial-relaxation for the restart segment")
+    ap.add_argument("--inlet-symlinks", action="store_true",
+                    help="also create inlet_<iter>.dat symlinks for the restart indices")
     args = ap.parse_args()
 
     ensure_precice_base()
@@ -169,7 +171,7 @@ def main():
     if man is None:
         sys.exit(f"ERROR: restart requested but {SOLID_MANIFEST} not found (run fresh first)")
     t_R = float(man["t"])                              # <-- single source of truth
-    # Index derivation (the ONE place; CONFIRM/adjust in the coupled regression):
+    # Index derivation (the ONE place; confirmed by the coupled regression):
     #   solid step=N at t_R=N*dt; the adapter writes restart_flow_<TimeIter> with
     #   Output(TimeIter) then TimeIter+=1, so after N windows the latest file is
     #   <N-1>.  The probe showed RESTART_ITER=k reads files <k-1>,<k-2>.  Hence:
@@ -183,7 +185,10 @@ def main():
 
     gen_precice_config(max_time, init_relax=args.init_relax)
     gen_fluid_config(restart=True, restart_iter=restart_iter)
-    setup_inlet_symlinks(files)
+    if args.inlet_symlinks:
+        setup_inlet_symlinks(files)
+    else:
+        print("[prepare] inlet symlinks: skipped (current SU2 config reads INLET_FILENAME=inlet.dat)")
     ok = verify_restart_files(files)
 
     print(f"\n[prepare] RESTART ready{'' if ok else ' (WARNING: missing restart files above)'}.")

@@ -17,6 +17,7 @@ so solve_window itself needs no change.
 """
 
 import os
+import re
 import json
 from pathlib import Path
 
@@ -26,6 +27,13 @@ from code_aster.Cata.Syntax import _F
 # Consistent state of a dynamic GREEN_LAGRANGE step.  Order is irrelevant but the
 # five must all be present and taken at the SAME instant t_R.
 CKPT_FIELDS = ("DEPL", "VITE", "ACCE", "SIEF_ELGA", "VARI_ELGA")
+
+
+def checkpoint_path_for_step(base_path, step):
+    """Return a versioned checkpoint path such as solid_ckpt_00042.med."""
+    base = Path(base_path)
+    suffix = base.suffix or ".med"
+    return base.with_name(f"{base.stem}_{int(step):05d}{suffix}")
 
 
 def save_checkpoint(result, t, path, unit=80):
@@ -47,6 +55,48 @@ def save_checkpoint(result, t, path, unit=80):
     finally:
         DEFI_FICHIER(ACTION="LIBERER", UNITE=unit)
     os.replace(str(tmp), str(path))   # atomic swap of the latest checkpoint
+
+
+def prune_checkpoints(base_path, keep=2, protect=()):
+    """Keep only the newest ``keep`` versioned solid checkpoints."""
+    base = Path(base_path)
+    suffix = base.suffix or ".med"
+    pat = re.compile(rf"^{re.escape(base.stem)}_(\d+){re.escape(suffix)}$")
+    protected = {Path(p).resolve() for p in protect}
+    indexed = []
+    for p in base.parent.glob(f"{base.stem}_*{suffix}"):
+        m = pat.match(p.name)
+        if m:
+            indexed.append((int(m.group(1)), p))
+    indexed.sort(key=lambda item: item[0])
+    keep = max(int(keep), 0)
+    for _, p in indexed[:-keep]:
+        if p.resolve() in protected:
+            continue
+        try:
+            p.unlink()
+        except OSError:
+            pass
+    return [p.name for _, p in indexed[-keep:]]
+
+
+def save_numbered_checkpoint(result, t, base_path, manifest_path, step, keep=2, unit=80):
+    """Save a versioned checkpoint and atomically point the manifest to it.
+
+    If Ctrl-C happens after writing the new MED but before the manifest update,
+    the old manifest still points to the previous complete MED.
+    """
+    checkpoint = checkpoint_path_for_step(base_path, step)
+    save_checkpoint(result, t, checkpoint, unit=unit)
+    write_manifest(
+        manifest_path,
+        step,
+        t,
+        checkpoint,
+        extra={"solid_checkpoint_keep": int(keep)},
+    )
+    prune_checkpoints(base_path, keep=keep, protect=(checkpoint,))
+    return checkpoint
 
 
 def load_checkpoint(path, model, fmat, unit=81):
