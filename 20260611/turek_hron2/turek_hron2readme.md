@@ -1,3 +1,6 @@
+fluid따로 solid따로 시작하는것도 만들어두기(fluid장 만들고 initial 로 restart dualtimesteping 2dn order로 하면 어떻게 할지도)
+
+
 
 python3 prepare_restart.py --fresh --total 0.004
 으로 fresh start의 경우 --total타임을 정해줘서 
