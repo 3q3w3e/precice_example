@@ -27,12 +27,12 @@ Disk(2) = {xC, yC, 0, r};
 BooleanDifference(10) = { Surface{1}; Delete; }{ Surface{2}; Delete; };
 
 // Point A(팁 끝단 중심)를 위한 위치에 점(Point) 생성
-Point(100) = {xBr, 0.5*(yBb+yBt), 0, lc_end};
+
 
 // [핵심 해결책] OpenCASCADE에서는 점을 선에 '포함'시킬 수 없으므로,
 // BooleanFragments 연산을 통해 면/선을 점(Point)으로 교차 분할(Split) 해버립니다.
 // 이 연산을 거치면 오른쪽 테두리 선이 Point A를 기준으로 정확히 위아래 2개로 쪼개집니다.
-BooleanFragments{ Surface{10}; Delete; }{ Point{100}; Delete; }
+
 
 Coherence;
 
