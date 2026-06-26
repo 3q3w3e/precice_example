@@ -55,7 +55,7 @@ def build_solid_context(config: SolidConfig) -> SolidContext:
         AFFE=_F(
             GROUP_MA=config.volume_gma,
             PHENOMENE="MECANIQUE",
-            MODELISATION="C_PLAN",
+            MODELISATION="D_PLAN",
         ),
     )
     mat = DEFI_MATERIAU(ELAS=_F(E=config.e_mod, NU=config.nu, RHO=config.rho))
