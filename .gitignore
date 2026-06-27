@@ -23,6 +23,7 @@ flow*.vtu
 surface_flow*.vtu
 restart_flow*.dat
 restart/
+common_geometry/*.su2
 
 # Code_Aster runtime output
 glob.*
@@ -34,8 +35,13 @@ run_*.log
 *log.txt
 solid_*.med
 run_solid_result.med
+common_geometry/*.med
 
 # Solid-only free-decay diagnostic output
 free_decay.csv
 free_decay.png
 free_decay_*.log
+
+# Solid-only diagnostic output
+solid_only.csv
+solid_only_*.log
