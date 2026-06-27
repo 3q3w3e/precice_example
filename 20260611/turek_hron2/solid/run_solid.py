@@ -37,6 +37,7 @@ def print_banner(config: SolidConfig):
     print("  run_solid.py — preCICE Solid participant (Code_Aster, 2D)")
     print(f"  config = {config.precice_config}")
     print(f"  mesh   = {config.mesh_file}")
+    print(f"  time_scheme = {config.time_scheme}")
     print(f"  OMP_NUM_THREADS = {os.environ.get('OMP_NUM_THREADS', '?')}")
     print("=" * 62, flush=True)
 

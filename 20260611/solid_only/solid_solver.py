@@ -9,6 +9,20 @@ from code_aster.Commands import AFFE_CHAR_MECA, DEFI_LIST_REEL, DYNA_NON_LINE
 from solid_model import SolidContext
 
 
+def build_time_scheme(config):
+    scheme = config.time_scheme.strip().upper()
+    if scheme == "HHT":
+        return _F(SCHEMA="HHT", FORMULATION="DEPLACEMENT", ALPHA=config.hht_alpha)
+    if scheme == "NEWMARK":
+        return _F(
+            SCHEMA="NEWMARK",
+            FORMULATION="DEPLACEMENT",
+            BETA=config.newmark_beta,
+            GAMMA=config.newmark_gamma,
+        )
+    raise ValueError(f"unknown time integration scheme: {config.time_scheme}")
+
+
 def build_force_load(context: SolidContext, forces):
     """Interface forces, shaped (n_iface, 2), as a Code_Aster load."""
     config = context.config
@@ -38,11 +52,7 @@ def solve_window(context: SolidContext, forces, prev_result, t0, t1, init_vite=N
         EXCIT=tuple(excit),
         COMPORTEMENT=_F(RELATION=config.material_relation, DEFORMATION=config.deformation),
         INCREMENT=_F(LIST_INST=tlist),
-        SCHEMA_TEMPS=_F(
-            SCHEMA=config.time_scheme,
-            FORMULATION="DEPLACEMENT",
-            ALPHA=config.hht_alpha,
-        ),
+        SCHEMA_TEMPS=build_time_scheme(config),
         NEWTON=_F(MATRICE=config.newton_matrix, REAC_ITER=config.newton_reac_iter),
         SOLVEUR=_F(METHODE=config.solver_method),
         CONVERGENCE=_F(

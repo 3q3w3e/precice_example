@@ -9,6 +9,20 @@ from code_aster.Commands import AFFE_CHAR_MECA, DEFI_LIST_REEL, DYNA_NON_LINE
 from solid_model import SolidContext
 
 
+def build_time_scheme(config):
+    scheme = config.time_scheme.strip().upper()
+    if scheme == "HHT":
+        return _F(SCHEMA="HHT", FORMULATION="DEPLACEMENT", ALPHA=config.hht_alpha)
+    if scheme == "NEWMARK":
+        return _F(
+            SCHEMA="NEWMARK",
+            FORMULATION="DEPLACEMENT",
+            BETA=config.newmark_beta,
+            GAMMA=config.newmark_gamma,
+        )
+    raise ValueError(f"unknown time integration scheme: {config.time_scheme}")
+
+
 def build_force_load(context: SolidContext, forces):
     """preCICE interface forces, shaped (n_iface, 2), as a Code_Aster load."""
     config = context.config
@@ -26,6 +40,7 @@ def build_force_load(context: SolidContext, forces):
 
 def solve_window(context: SolidContext, forces, prev_result, t0, t1, init_vite=None):
     """Solve one coupling window from the checkpoint state ``prev_result``."""
+    config = context.config
     load = build_force_load(context, forces)
     tlist = DEFI_LIST_REEL(VALE=(t0, t1))
     kw = dict(
@@ -34,7 +49,7 @@ def solve_window(context: SolidContext, forces, prev_result, t0, t1, init_vite=N
         EXCIT=(_F(CHARGE=context.fix), _F(CHARGE=load)),
         COMPORTEMENT=_F(RELATION="ELAS", DEFORMATION="GREEN_LAGRANGE"),
         INCREMENT=_F(LIST_INST=tlist),
-        SCHEMA_TEMPS=_F(SCHEMA="HHT", FORMULATION="DEPLACEMENT", ALPHA=-0.1),
+        SCHEMA_TEMPS=build_time_scheme(config),
         NEWTON=_F(MATRICE="TANGENTE", REAC_ITER=1),
         SOLVEUR=_F(METHODE="MUMPS"),
         CONVERGENCE=_F(

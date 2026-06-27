@@ -19,10 +19,10 @@ yBb = 0.19;
 yBt = 0.21;
 
 // Mesh sizes 
-lc_far   = 0.02;     
-lc_wake  = 0.008;    
-lc_near  = 0.003;    
-lc_bl    = 0.001;    
+lc_far   = 0.018;     
+lc_wake  = 0.006;    
+lc_near  = 0.0025;    
+lc_bl    = 0.00070;    
 
 
 // --------- 2. Build geometry ----------

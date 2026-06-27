@@ -15,8 +15,8 @@ PROBE_X = 0.6
 PROBE_Y = 0.2
 
 TRANSIENT_DT = 0.002
-TRANSIENT_STEPS = 7500
-TRANSIENT_SAVE_EVERY = 1
+TRANSIENT_STEPS = 1000
+TRANSIENT_SAVE_EVERY = 50
 TRANSIENT_CSV = "solid_only.csv"
 TRANSIENT_CSV_FSYNC = False
 PERTURB_VEL = 0.0
@@ -44,8 +44,10 @@ RHO = 1.0e3
 
 MATERIAL_RELATION = "ELAS"
 DEFORMATION = "GREEN_LAGRANGE"
-TIME_SCHEME = "HHT"
+TIME_SCHEME = "NEWMARK"
 HHT_ALPHA = -0.1
+NEWMARK_BETA = 0.25
+NEWMARK_GAMMA = 0.5
 NEWTON_MATRIX = "TANGENTE"
 NEWTON_REAC_ITER = 1
 SOLVER_METHOD = "MUMPS"
@@ -129,6 +131,8 @@ class SolidConfig:
     deformation: str
     time_scheme: str
     hht_alpha: float
+    newmark_beta: float
+    newmark_gamma: float
     newton_matrix: str
     newton_reac_iter: int
     solver_method: str
@@ -176,8 +180,10 @@ class SolidConfig:
             rho=RHO,
             material_relation=MATERIAL_RELATION,
             deformation=DEFORMATION,
-            time_scheme=TIME_SCHEME,
-            hht_alpha=HHT_ALPHA,
+            time_scheme=_env_str("SOLID_TIME_SCHEME", TIME_SCHEME).strip().upper(),
+            hht_alpha=_env_float("SOLID_HHT_ALPHA", HHT_ALPHA),
+            newmark_beta=_env_float("SOLID_NEWMARK_BETA", NEWMARK_BETA),
+            newmark_gamma=_env_float("SOLID_NEWMARK_GAMMA", NEWMARK_GAMMA),
             newton_matrix=NEWTON_MATRIX,
             newton_reac_iter=NEWTON_REAC_ITER,
             solver_method=SOLVER_METHOD,

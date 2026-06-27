@@ -112,6 +112,7 @@ def main():
         print(f"  save_every = {save_every}", flush=True)
         print(f"  output     = {out}", flush=True)
         print(f"  csv_fsync  = {int(csv_fsync)}", flush=True)
+        print(f"  time_scheme= {config.time_scheme}", flush=True)
         print(f"  perturb_v  = {config.perturb_vel:g}", flush=True)
         print(f"  gravity    = {config.gravity:g} dir={config.gravity_dir}", flush=True)
         print(f"  OMP_NUM_THREADS = {os.environ.get('OMP_NUM_THREADS', '?')}", flush=True)

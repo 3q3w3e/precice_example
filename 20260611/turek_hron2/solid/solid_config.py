@@ -38,6 +38,11 @@ class SolidConfig:
     nu: float
     rho: float
 
+    time_scheme: str
+    hht_alpha: float
+    newmark_beta: float
+    newmark_gamma: float
+
     mesh_unit: int
     result_unit: int
     comp: tuple[str, str]
@@ -73,6 +78,10 @@ class SolidConfig:
             e_mod=1.4e6,
             nu=0.40,
             rho=1.0e4,
+            time_scheme=os.environ.get("SOLID_TIME_SCHEME", "HHT").strip().upper(),
+            hht_alpha=float(os.environ.get("SOLID_HHT_ALPHA", "-0.1")),
+            newmark_beta=float(os.environ.get("SOLID_NEWMARK_BETA", "0.25")),
+            newmark_gamma=float(os.environ.get("SOLID_NEWMARK_GAMMA", "0.5")),
             mesh_unit=20,
             result_unit=80,
             comp=("DX", "DY"),
